@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const User = require("./models/user");
 require("dotenv/config");
 
-router.post("/signup", async (req, res) => {
+router.post("/signin", async (req, res) => {
   try {
     let user = await User.findById(req.body.username);
     if (user) return res.json({ error: "El usuario ya existe" });
@@ -20,5 +20,33 @@ router.post("/signup", async (req, res) => {
     res.status(500);
   }
 });
+
+router.post("/login", async (req, res) => {
+  try {
+    const user = await User.findById(req.body.username);
+    if (!user) return res.json({ error: "Wrong username or password" });
+    const isThePassword = await bcrypt.compare(
+      req.body.password,
+      user.password
+    );
+    if (!isThePassword)
+      return res.json({ error: "Wrong username or password" });
+    const token = jwt.sign({ id: user.id }, process.env.TOKEN_SECRET);
+    res.json({ token: token });
+  } catch (error) {
+    res.status(500);
+  }
+});
+
+// router.get("/auth", async (req, res) => {
+//   try {
+//     const decoded = jwt.verify(req.get("Auth-Token"), process.env.TOKEN_SECRET);
+//     const user = await User.findById(decoded.id);
+//     if (!user) return res.json({ status: "ERROR" });
+//     res.json({ status: "OK" });
+//   } catch (error) {
+//     res.json({ status: "ERROR" });
+//   }
+// });
 
 module.exports = router;
