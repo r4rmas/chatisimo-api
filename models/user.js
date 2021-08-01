@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 mongoose.set("useFindAndModify", false);
 
 const User = mongoose.Schema({
-  username: {
+  _id: {
     type: String,
     required: true,
   },
