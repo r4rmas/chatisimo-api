@@ -38,15 +38,17 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// router.get("/auth", async (req, res) => {
-//   try {
-//     const decoded = jwt.verify(req.get("Auth-Token"), process.env.TOKEN_SECRET);
-//     const user = await User.findById(decoded.id);
-//     if (!user) return res.json({ status: "ERROR" });
-//     res.json({ status: "OK" });
-//   } catch (error) {
-//     res.json({ status: "ERROR" });
-//   }
-// });
+router.get("/auth", async (req, res) => {
+  try {
+    const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.json({ error: "User does not exists" });
+    //I could remove the password but this way is funnier, trust me
+    const userSafe = { ...user._doc, password: ":)" };
+    res.json({ user: userSafe });
+  } catch (error) {
+    res.status(500);
+  }
+});
 
 module.exports = router;
