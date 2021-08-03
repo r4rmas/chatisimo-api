@@ -11,6 +11,14 @@ const User = mongoose.Schema({
     type: String,
     required: true,
   },
+  friends: {
+    type: Array,
+    required: false,
+  },
+  requests: {
+    type: Array,
+    required: false,
+  },
 });
 
 module.exports = mongoose.model("users", User);
