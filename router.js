@@ -61,6 +61,7 @@ router.post("/accept/request", async (req, res) => {
     const requester = await User.findById(req.body.username);
     if (!requester) return res.json({ error: "Requester doest not exist" });
     user.requests = user.requests.filter((request) => request !== requester.id);
+    user.friends = [...user.friends, requester.id];
     requester.friends = [...requester.friends, user.id];
     await user.save();
     await requester.save();
