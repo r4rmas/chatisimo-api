@@ -38,7 +38,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.post("/request", async (req, res) => {
+router.post("/send/request", async (req, res) => {
   try {
     const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
     const requester = await User.findById(decoded.id);
@@ -48,6 +48,22 @@ router.post("/request", async (req, res) => {
     user.requests = [...user.requests, requester.id];
     await user.save();
     res.send();
+  } catch (error) {
+    res.status(500);
+  }
+});
+
+router.post("/accept/request", async (req, res) => {
+  try {
+    const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.json({ error: "User does not exist" });
+    const requester = await User.findById(req.body.username);
+    if (!requester) return res.json({ error: "Requester doest not exist" });
+    user.requests = user.requests.filter((request) => request !== requester.id);
+    requester.friends = [...requester.friends, user.id];
+    await user.save();
+    await requester.save();
   } catch (error) {
     res.status(500);
   }
