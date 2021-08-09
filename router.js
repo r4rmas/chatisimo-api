@@ -24,13 +24,13 @@ router.post("/signin", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const user = await User.findById(req.body.username);
-    if (!user) return res.json({ error: "Wrong username or password" });
+    if (!user) return res.json({ error: "Usuario o contraseña incorrecta" });
     const isThePassword = await bcrypt.compare(
       req.body.password,
       user.password
     );
     if (!isThePassword)
-      return res.json({ error: "Wrong username or password" });
+      return res.json({ error: "Usuario o contraseña incorrecta" });
     const token = jwt.sign({ id: user.id }, process.env.TOKEN_SECRET);
     res.json({ token: token });
   } catch (error) {
@@ -39,15 +39,26 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/send/request", async (req, res) => {
+  //VERIFICAR QUE NO SE HAYA MANDADO SOLICITUD ANTERIORMENTE
   try {
     const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
     const requester = await User.findById(decoded.id);
-    if (!requester) return res.json({ error: "Requester does not exist" });
     const user = await User.findById(req.body.username);
-    if (!user) return res.json({ error: "User does not exist" });
+
+    if (!requester) return res.json({ error: "Remitente no existe" });
+    if (!user) return res.json({ error: "Usuario no existe" });
+
+    const alreadySend = user.requests.includes(requester.id);
+    if (alreadySend)
+      return res.json({ error: "Solicitud de amistad enviada anteriormente" });
+
+    const alreadyFriends = user.friends.includes(requester.id);
+    if (alreadyFriends)
+      return res.json({ error: `${user.id} y tú ya son amigos` });
+
     user.requests = [...user.requests, requester.id];
     await user.save();
-    res.send();
+    res.json({ success: "Solicitud de amistad enviada" });
   } catch (error) {
     res.status(500);
   }
@@ -57,9 +68,9 @@ router.post("/accept/request", async (req, res) => {
   try {
     const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.json({ error: "User does not exist" });
+    if (!user) return res.json({ error: "Usario no existe" });
     const requester = await User.findById(req.body.username);
-    if (!requester) return res.json({ error: "Requester doest not exist" });
+    if (!requester) return res.json({ error: "Remitente no existe" });
     user.requests = user.requests.filter((request) => request !== requester.id);
     user.friends = [...user.friends, requester.id];
     requester.friends = [...requester.friends, user.id];
@@ -70,11 +81,25 @@ router.post("/accept/request", async (req, res) => {
   }
 });
 
+router.post("/decline/request", async (req, res) => {
+  try {
+    const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.json({ error: "Usario no existe" });
+    const requester = await User.findById(req.body.username);
+    if (!requester) return res.json({ error: "Remitente no existe" });
+    user.requests = user.requests.filter((request) => request !== requester.id);
+    await user.save();
+  } catch (error) {
+    res.status(500);
+  }
+});
+
 router.get("/auth", async (req, res) => {
   try {
     const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
     const user = await User.findById(decoded.id);
-    if (!user) return res.json({ error: "User does not exist" });
+    if (!user) return res.json({ error: "Usuario no existe" });
     //I could remove the password but this way is funnier, trust me
     const userSafe = { ...user._doc, password: ":)" };
     res.json({ user: userSafe });
