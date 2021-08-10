@@ -9,10 +9,7 @@ router.post("/signin", async (req, res) => {
     let user = await User.findById(req.body.username);
     if (user) return res.json({ error: "El usuario ya existe" });
     const hashed = await bcrypt.hash(req.body.password, 10);
-    user = new User({
-      _id: req.body.username,
-      password: hashed,
-    });
+    user = new User({ _id: req.body.username, password: hashed });
     await user.save();
     const token = jwt.sign({ id: user.id }, process.env.TOKEN_SECRET);
     res.json({ token: token });
@@ -39,7 +36,6 @@ router.post("/login", async (req, res) => {
 });
 
 router.post("/send/request", async (req, res) => {
-  //VERIFICAR QUE NO SE HAYA MANDADO SOLICITUD ANTERIORMENTE
   try {
     const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
     const requester = await User.findById(decoded.id);
@@ -59,6 +55,52 @@ router.post("/send/request", async (req, res) => {
     user.requests = [...user.requests, requester.id];
     await user.save();
     res.json({ success: "Solicitud de amistad enviada" });
+  } catch (error) {
+    res.status(500);
+  }
+});
+
+router.post("/send/message", async (req, res) => {
+  try {
+    const decoded = jwt.verify(req.get("auth-token"), process.env.TOKEN_SECRET);
+    const sender = await User.findById(decoded.id);
+    const receiver = await User.findById(req.body.receiver);
+
+    if (!sender) return res.json({ error: "Remitente no existe" });
+    if (!receiver) return res.json({ error: "Usuario no existe" });
+
+    const message = { _id: sender.id, message: req.body.message };
+
+    //FUNCIONAAAAAAA!!! :)))
+
+    const chat = sender.chats.filter((chat) => chat.id === receiver.id);
+    const chatExists = chat.length > 0;
+
+    if (chatExists) {
+      sender.chats.map((chat) => {
+        if (chat.id === receiver.id) {
+          chat.history.push(message);
+        }
+      });
+      receiver.chats.map((chat) => {
+        if (chat.id === sender.id) {
+          chat.history.push(message);
+        }
+      });
+    } else {
+      sender.chats = [
+        ...sender.chats,
+        { _id: receiver.id, history: [message] },
+      ];
+      receiver.chats = [
+        ...receiver.chats,
+        { _id: sender.id, history: [message] },
+      ];
+    }
+
+    await sender.save();
+    await receiver.save();
+    res.json({ success: "Mensaje enviado" });
   } catch (error) {
     res.status(500);
   }
