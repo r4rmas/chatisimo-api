@@ -11,11 +11,10 @@ app.use(router);
 
 mongoose.connect(
   process.env.DB_URL,
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  },
+  { useNewUrlParser: true, useUnifiedTopology: true },
   () => console.log("Connected to database")
 );
 
-app.listen(3000, () => console.log("Listening at http://localhost:3000"));
+app.listen(process.env.PORT || 3000, () =>
+  console.log("Listening at http://localhost:3000")
+);
